@@ -129,11 +129,8 @@ ssh -o PreferredAuthentications=password john@10.0.0.1
 From your VPS machine...
 
 ```sh
-# Become root.
-sudo su -
-
 # Update packages.
-apt update
+sudo apt update
 
 # Upgrade packages.
 ##
@@ -145,24 +142,58 @@ apt update
 ## If you get a message saying: `Newer kernel available… Restarting the
 ## system to load the new kernel will not be handled automatically, so you
 ## should consider rebooting.`, select <Ok> to continue.
-apt upgrade
+sudo apt upgrade
 
 # Check if server needs to be rebooted.
 ## If you see a message similar to `*** System restart required ***` or `yes`,
 ## reboot the server. If possible, reboot it from the UI, otherwise type `reboot`.
 cat /var/run/reboot-required
 
-# After reboot...
-
-# Become root.
-sudo su -
-
-# Upgrade packages again.
-apt upgrade
+# After reboot, Upgrade packages again.
+sudo apt upgrade
 
 # If you see any pending packages, install them manually.
-apt install __PACKAGE__
+sudo apt install __PACKAGE__
 
 # Upgrade packages again and expect to see no pending packages.
-apt upgrade
+sudo apt upgrade
+```
+
+## Configure firewall
+
+From your VPS machine...
+
+```sh
+# Deny all incoming traffic.
+sudo ufw default deny incoming
+
+# Allow all outgoing traffic.
+sudo ufw default allow outgoing
+
+# Allow SSH, HTTP and HTTPS traffic.
+sudo ufw allow 22
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+
+# Enable/apply changes.
+sudo ufw enable
+
+# Verify status. At this point you should get the following output:
+### Status: active
+###
+### To                         Action      From
+### --                         ------      ----
+### 22                         ALLOW       Anywhere
+### 80/tcp                     ALLOW       Anywhere
+### 443/tcp                    ALLOW       Anywhere
+### 22 (v6)                    ALLOW       Anywhere (v6)
+### 80/tcp (v6)                ALLOW       Anywhere (v6)
+### 443/tcp (v6)               ALLOW       Anywhere (v6)
+sudo ufw status
+
+# List firewall rules.
+sudo ufw app list
+
+# Show rules you added.
+sudo ufw show added
 ```
