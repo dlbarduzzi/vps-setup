@@ -123,3 +123,46 @@ ssh root@10.0.0.1
 # Expected: `john@10.0.0.1: Permission denied (publickey).`
 ssh -o PreferredAuthentications=password john@10.0.0.1
 ```
+
+## Update packages
+
+From your VPS machine...
+
+```sh
+# Become root.
+sudo su -
+
+# Update packages.
+apt update
+
+# Upgrade packages.
+##
+## If you get a message saying: `A new version of configuration file
+## /etc/ssh/sshd_config is available, but the version installed currently
+## has been locally modified.`, select `keep the local version currently
+## installed` and then <Ok> to continue.
+##
+## If you get a message saying: `Newer kernel available… Restarting the
+## system to load the new kernel will not be handled automatically, so you
+## should consider rebooting.`, select <Ok> to continue.
+apt upgrade
+
+# Check if server needs to be rebooted.
+## If you see a message similar to `*** System restart required ***` or `yes`,
+## reboot the server. If possible, reboot it from the UI, otherwise type `reboot`.
+cat /var/run/reboot-required
+
+# After reboot...
+
+# Become root.
+sudo su -
+
+# Upgrade packages again.
+apt upgrade
+
+# If you see any pending packages, install them manually.
+apt install __PACKAGE__
+
+# Upgrade packages again and expect to see no pending packages.
+apt upgrade
+```
