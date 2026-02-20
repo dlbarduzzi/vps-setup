@@ -124,42 +124,6 @@ ssh root@10.0.0.1
 ssh -o PreferredAuthentications=password john@10.0.0.1
 ```
 
-## Hardening SSH
-
-From your VPS machine...
-
-```sh
-# Check your auth logs for lines like below...
-## banner exchange: Connection from XXX.XXX.XXX.XXX port XXXXX: invalid format
-sudo vim /var/log/auth.log
-
-# Install fail2ban package.
-sudo apt install fail2ban
-
-# Create a local config file.
-sudo vim /etc/fail2ban/jail.local
-
-# Set the contents in jail.local to below output.
-sudo cat /etc/fail2ban/jail.local
-# Output (ignore `###`):
-### [sshd]
-### enabled = true
-### port = 22
-### maxretry = 5
-### bantime = 12h
-
-# Enable and restart service.
-sudo systemctl enable --now fail2ban
-sudo systemctl restart fail2ban
-
-# Check service status.
-sudo systemctl status fail2ban
-
-# Check client service status.
-sudo fail2ban-client status
-sudo fail2ban-client status sshd
-```
-
 ## Update packages
 
 From your VPS machine...
@@ -232,4 +196,40 @@ sudo ufw app list
 
 # Show rules you added.
 sudo ufw show added
+```
+
+## Hardening SSH
+
+From your VPS machine...
+
+```sh
+# Check your auth logs for lines like below...
+## banner exchange: Connection from XXX.XXX.XXX.XXX port XXXXX: invalid format
+sudo vim /var/log/auth.log
+
+# Install fail2ban package.
+sudo apt install fail2ban
+
+# Create a local config file.
+sudo vim /etc/fail2ban/jail.local
+
+# Set the contents in jail.local to below output.
+sudo cat /etc/fail2ban/jail.local
+# Output (ignore `###`):
+### [sshd]
+### enabled = true
+### port = 22
+### maxretry = 5
+### bantime = 12h
+
+# Enable and restart service.
+sudo systemctl enable --now fail2ban
+sudo systemctl restart fail2ban
+
+# Check service status.
+sudo systemctl status fail2ban
+
+# Check client service status.
+sudo fail2ban-client status
+sudo fail2ban-client status sshd
 ```
