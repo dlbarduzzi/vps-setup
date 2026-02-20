@@ -233,3 +233,152 @@ sudo systemctl status fail2ban
 sudo fail2ban-client status
 sudo fail2ban-client status sshd
 ```
+
+## Reverse proxy
+
+From your VPS machine...
+
+```sh
+# Install Caddy.
+# Visit https://caddyserver.com/docs/install#debian-ubuntu-raspbian
+sudo apt install -y debian-keyring debian-archive-keyring apt-transport-https
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' |\
+  sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' |\
+  sudo tee /etc/apt/sources.list.d/caddy-stable.list
+chmod o+r /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+chmod o+r /etc/apt/sources.list.d/caddy-stable.list
+sudo apt update
+sudo apt install caddy
+
+# Check if caddy is running.
+sudo systemctl status caddy
+
+# If successfully running, you should be able to open your browser at
+# http://<your_vps_ip> and see the Caddy welcome page.
+```
+
+## (Optional) - Application example
+
+The example below shows how to run an application and use caddy as a reverse proxy.
+
+This example assumes that you have a `go http server` application binary create in your local machine.
+
+You can create the binary running the following command:
+
+```sh
+# For linux amd64
+GOOS=linux GOARCH=amd64 go build -ldflags="-s" -o=./bin/linux_amd64/api ./cmd/api
+```
+
+Copy the binary to you VPS server.
+
+```sh
+rsync -P ./bin/linux_amd64/api john@10.0.0.1:~
+```
+
+Running the app.
+
+```sh
+# For now (we will setup this up with HTTPS later) allow connections
+# to your api port that the server is listening to (for example 8090).
+sudo ufw allow 8090/tcp
+
+# Run your app (make sure to change to directly where binary exists).
+./api
+
+# Visit your api endpoint on the browser (for example if it has an health api)
+# http://<your_vps_ip>:8090/api/v1/health
+# Make sure the content is showing what your api is serving.
+```
+
+## (Optional) - Run the application as a service
+
+Create a service file.
+
+```sh
+# cat api.service
+[Unit]
+Description=My API Service
+After=network.target
+After=network-online.target
+Requires=network-online.target
+
+[Service]
+Type=exec
+User=__USER__
+Group=__GROUP__
+WorkingDirectory=/home/__USERNAME__
+ExecStart=/home/__USERNAME__/api
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Setup service with systemctl.
+
+```sh
+# Move service file to systemd dir.
+sudo mv api.service /etc/systemd/system/
+
+# Enable service to start at boot time.
+sudo systemctl enable api
+
+# Restart service.
+sudo systemctl restart api
+
+# Check service status.
+sudo systemctl status api
+
+# Check process that service is running on.
+ps -U api
+
+# After checking on the browser that you can still hit the api, disable port
+# we allowed for testing.
+sudo ufw delete allow 8090/tcp
+sudo ufw reload
+
+# Create a Caddyfile backup.
+sudo mv /etc/caddy/Caddyfile /etc/caddy/Caddyfile.original
+
+# Create a custom Caddyfile with contents below.
+## Example 1
+#### __VPS_IP_ADDRESS__ {
+####   reverse_proxy 127.0.0.1:8090
+#### }
+
+## Example 2
+#### http://__VPS_IP_ADDRESS__ {
+####   respond /api/* "Not Permitted" 403
+####   reverse_proxy 127.0.0.1:8090
+#### }
+
+## Example 3
+#### http://__DOMAIN_NAME__ {
+####   reverse_proxy 127.0.0.1:8090
+#### }
+
+## Example 4 - With HTTPS
+{
+  email you@email.com
+}
+
+# Do not add `http` or `https` before domain name
+__DOMAIN__NAME__ {
+  reverse_proxy 127.0.0.1:8090
+}
+
+# Move you custom Caddyfile to caddy's config location.
+sudo mv Caddyfile /etc/caddy/
+
+# Reload caddy service.
+sudo systemctl reload caddy
+
+# Check caddy service status.
+sudo systemctl status caddy
+
+# At this point you should have HTTPS setup.
+# All requests to port HTTP should be redirected to HTTPS.
+```
